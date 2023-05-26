@@ -1,104 +1,63 @@
 <script lang="ts">
-  import DeviceComponent from '$lib/device.svelte';
-  import LambdaStatsComponent from '$lib/lambda-stats.svelte';
-  import type { Device, LambdaStats } from '$lib/utils';
   import createPanZoom, { type PanZoom } from 'panzoom';
   import { onMount } from 'svelte';
+  import { Tabs, Tab, TabContent, Dropdown } from 'carbon-components-svelte';
+  import { Grid, Row, Column } from 'carbon-components-svelte';
+  import { Tile } from 'carbon-components-svelte';
 
-  interface DeviceData {
-    devices: Device[];
-    lambda_stats: LambdaStats[];
-  }
-  const data: DeviceData = {
-    devices: [
-      {
-        date: new Date(),
-        deviceId: 'CBRXX1',
-        engineId: 'Cobb_mix_2403_final',
-        currentSessionId: 'jetson_v4.10.7.28_CGBRNT',
-        shardId: '0003',
-        actions: ['S+', 'C+', '3+', 'U-']
-      },
-      {
-        date: new Date(),
-        deviceId: 'CBRXX1',
-        engineId: 'Cobb_mix_2403_final',
-        currentSessionId: 'jetson_v4.10.7.28_CGBRNT',
-        shardId: '0003',
-        actions: ['S+', 'C+', '3+', 'U-']
-      },
-      {
-        date: new Date(),
-        deviceId: 'CBRXX1',
-        engineId: 'Cobb_mix_2403_final',
-        currentSessionId: 'jetson_v4.10.7.28_CGBRNT',
-        shardId: '0003',
-        actions: ['S+', 'C+', '3+', 'U-']
-      }
-    ],
-    lambda_stats: [
-      {
-        lambda_inactivity: 12,
-        max_lambda_inactivity: 15,
-        queuing_time: 20,
-        max_queuing_time: 30,
-        shard: 'shard1'
-      },
-      {
-        lambda_inactivity: 11,
-        max_lambda_inactivity: 20,
-        queuing_time: 15,
-        max_queuing_time: 35,
-        shard: 'shard_2'
-      },
-      {
-        lambda_inactivity: 22,
-        max_lambda_inactivity: 25,
-        queuing_time: 10,
-        max_queuing_time: 20,
-        shard: 'shard_3'
-      },
-    ]
-  };
-  let zoomer: HTMLElement;
-  let panzoom: PanZoom | null = null;
-  let scale = 1;
-  onMount(() => {
-    panzoom = createPanZoom(zoomer, {
-      // minZoom: 0.1,
-      // maxZoom: 10,
-      initialZoom: 1
-    });
-    panzoom.on('zoom', () => {
-      if (panzoom) scale = panzoom.getTransform().scale;
-    });
-  });
+  import {
+    Form,
+    FormGroup,
+    Checkbox,
+    RadioButtonGroup,
+    RadioButton,
+    Select,
+    SelectItem,
+    Button
+  } from 'carbon-components-svelte';
+  import { patients_example } from '$lib/utils';
+  import Patient from '$lib/patient.svelte';
+  import Volumetric from '$lib/volumetric.svelte';
+
+  const patients = patients_example;
+  let selected_patient_idx = 0;
 </script>
 
-<div class="h-400px w-full">
-  <LambdaStatsComponent  bind:lambda_stats={data.lambda_stats}/>
-</div>
+<Grid>
+  <Row>
+    <Column>
+      <Tile>
+        <h1>Patients</h1>
+        <Dropdown
+          titleText="Select patient"
+          bind:selectedId={selected_patient_idx}
+          items={patients.map((p, idx) => ({
+            id: idx,
+            text: `${p.first_name} ${p.last_name} ${p.father_name}`
+          }))}
+        />
+      </Tile>
+    </Column>
+  </Row>
+  <Row class="mt-2">
+    <Column sm={4} md={3} lg={4}>
+      <Tile>
+        <Patient patient={patients[selected_patient_idx]} />
+        <Button>scan</Button>
+      </Tile>
+    </Column>
 
-<div class="h-screen w-screen absolute overflow-clip">
-  <div
-    on:scroll={(e) => {
-      console.log(e);
-      console.log(panzoom?.getTransform().scale);
-    }}
-    bind:this={zoomer}
-  >
-    <div
-      on:scroll={(e) => {
-        console.log(e);
-        console.log(panzoom?.getTransform().scale);
-      }}
-      class="text-center h-full w-full grid items-center justify-items-center"
-    >
-      <div class="flex gap-10">
-        {#each data.devices as device}
-          <DeviceComponent {scale} bind:device />
-        {/each}
-      </div>
-    </div>
-  </div>
-</div>
+    <Column sm={4} md={5} lg={12}>
+      <Tabs>
+        <Tab label="Tomographic scan" />
+        <Tab label="Volume Renderer" />
+        <svelte:fragment slot="content">
+          <TabContent>Tomographic scan</TabContent>
+          <TabContent class="border-white border-2 border-solid ">
+            <Volumetric />
+          </TabContent>
+        </svelte:fragment>
+      </Tabs>
+    </Column>
+  </Row>
+</Grid>

@@ -1,21 +1,21 @@
-export const MIN_SCALE = 0.1;
-
-type ActionStatus = '+' | '-';
-type Action = `${string}${ActionStatus}`;
-
-export interface Device {
-  date: Date;
-  deviceId: string;
-  engineId: string;
-  currentSessionId: string;
-  shardId: string;
-  actions: Action[];
+export interface Patient {
+  first_name: string;
+  last_name: string;
+  father_name: string;
+  sex: string;
 }
 
-export interface LambdaStats {
-  lambda_inactivity: number;
-  max_lambda_inactivity: number;
-  queuing_time: number;
-  max_queuing_time: number;
-  shard: string;
-}
+export const patients_example: Patient[] = [
+  {
+    first_name: 'sus',
+    last_name: 'susser',
+    father_name: 'abobovich',
+    sex: 'yeees'
+  },
+  {
+    first_name: 'aaaa',
+    last_name: 'susser',
+    father_name: 'abobovich',
+    sex: 'no'
+  }
+];
