@@ -18,6 +18,7 @@
   import { patients_example } from '$lib/utils';
   import Patient from '$lib/patient.svelte';
   import Volumetric from '$lib/volumetric.svelte';
+  import Tomograph from '$lib/tomograph.svelte';
 
   const patients = patients_example;
   let selected_patient_idx = 0;
@@ -27,7 +28,7 @@
   <Row>
     <Column>
       <Tile>
-        <h1>Patients</h1>
+        <h1>Patients1</h1>
         <Dropdown
           titleText="Select patient"
           bind:selectedId={selected_patient_idx}
@@ -52,7 +53,9 @@
         <Tab label="Tomographic scan" />
         <Tab label="Volume Renderer" />
         <svelte:fragment slot="content">
-          <TabContent>Tomographic scan</TabContent>
+          <TabContent>
+            <Tomograph />
+          </TabContent>
           <TabContent class="border-white border-2 border-solid ">
             <Volumetric />
           </TabContent>

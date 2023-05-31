@@ -48,7 +48,7 @@ function createMainWindow() {
   if (isdev) loadVite(port);
   else loadURL(mainwindow);
 }
-
+app.commandLine.appendSwitch('enable-features','SharedArrayBuffer')
 app.once('ready', createMainWindow);
 app.on('activate', () => {
   if (!mainwindow) createMainWindow();

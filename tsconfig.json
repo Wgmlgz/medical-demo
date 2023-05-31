@@ -12,7 +12,18 @@
     "lib": [
       "ES2022",
       "DOM"
-    ]
+    ],
+    "paths": {
+      "$lib": [
+        "./src/lib"
+      ],
+      "$lib/*": [
+        "./src/lib/*"
+      ],
+      "@cornerstonejs/dicom-image-loader": [
+        "./node_modules/@cornerstonejs/dicom-image-loader/dist/"
+      ]
+    }
   },
   // Path aliases are handled by https://kit.svelte.dev/docs/configuration#alias
   //
