@@ -1,17 +1,36 @@
-const { app, ipcMain, BrowserWindow } = require('electron');
+/* eslint-disable @typescript-eslint/no-var-requires */
+const { app, BrowserWindow } = require('electron');
 const serve = require('electron-serve');
 const ws = require('electron-window-state');
+
+const path = require('path');
+
 try {
-  require('electron-reloader')(module);
-} catch {}
+  require('electron-reload')(__dirname, {
+    electron: path.join(__dirname, '..', 'node_modules', '.bin', 'electron')
+  });
+} catch {
+  /* empty */
+}
 
 const loadURL = serve({ directory: '.' });
-const port = process.env.PORT || 3000;
-const isdev = !app.isPackaged || process.env.NODE_ENV == 'development';
-let mainwindow;
 
+/**
+ * @type {number}
+ */
+const port = Number(process.env.PORT || 3000);
+const is_dev = !app.isPackaged || process.env.NODE_ENV == 'development';
+
+/**
+ * @type {BrowserWindow | null}
+ */
+let main_window = null;
+
+/**
+ * @param {number} port
+ */
 function loadVite(port) {
-  mainwindow.loadURL(`http://localhost:${port}`).catch(() => {
+  main_window?.loadURL(`http://localhost:${port}`).catch(() => {
     setTimeout(() => {
       loadVite(port);
     }, 200);
@@ -24,7 +43,7 @@ function createMainWindow() {
     defaultHeight: 800
   });
 
-  mainwindow = new BrowserWindow({
+  main_window = new BrowserWindow({
     x: mws.x,
     y: mws.y,
     width: mws.width,
@@ -33,25 +52,25 @@ function createMainWindow() {
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: false,
-      devTools: isdev || true
+      devTools: is_dev || true
     }
   });
 
-  mainwindow.once('close', () => {
-    mainwindow = null;
+  main_window.once('close', () => {
+    main_window = null;
   });
 
-  if (!isdev) mainwindow.removeMenu();
-  else mainwindow.webContents.openDevTools();
-  mws.manage(mainwindow);
+  if (!is_dev) main_window.removeMenu();
+  else main_window.webContents.openDevTools();
+  mws.manage(main_window);
 
-  if (isdev) loadVite(port);
-  else loadURL(mainwindow);
+  if (is_dev) loadVite(port);
+  else loadURL(main_window);
 }
-app.commandLine.appendSwitch('enable-features','SharedArrayBuffer')
+app.commandLine.appendSwitch('enable-features', 'SharedArrayBuffer');
 app.once('ready', createMainWindow);
 app.on('activate', () => {
-  if (!mainwindow) createMainWindow();
+  if (!main_window) createMainWindow();
 });
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();
