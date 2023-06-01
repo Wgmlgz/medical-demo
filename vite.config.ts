@@ -4,6 +4,7 @@ import { defineConfig } from 'vite';
 import extractorSvelte from '@unocss/extractor-svelte';
 import tsconfigPaths from 'vite-tsconfig-paths';
 import crossOriginIsolation from 'vite-plugin-cross-origin-isolation';
+import topLevelAwait from "vite-plugin-top-level-await";
 
 export default defineConfig({
   plugins: [
@@ -13,6 +14,7 @@ export default defineConfig({
     sveltekit(),
     tsconfigPaths(),
     crossOriginIsolation(),
+    topLevelAwait(),
     {
       name: "configure-response-headers",
       configureServer: (server) => {
