@@ -15,20 +15,29 @@
     SelectItem,
     Button
   } from 'carbon-components-svelte';
-  import { patients_example } from '$lib/utils';
-  import Patient from '$lib/patient.svelte';
+  import { patients_example, type Patient } from '$lib/utils';
+  import PatientComponent from '$lib/patient.svelte';
   import Volumetric from '$lib/volumetric.svelte';
   import Tomograph from '$lib/tomograph.svelte';
 
   const patients = patients_example;
   let selected_patient_idx = 0;
+  let selected_tab = 0;
+
+  let preview_patient: Patient | null = null;
+  let patient: Patient | null = null;
+
+  $: {preview_patient = patients[selected_patient_idx];}
+  const scan = () => {
+    patient = preview_patient;
+  };
 </script>
 
 <Grid>
   <Row>
     <Column>
       <Tile>
-        <h1>Patients1</h1>
+        <h1>Patients</h1>
         <Dropdown
           titleText="Select patient"
           bind:selectedId={selected_patient_idx}
@@ -43,26 +52,21 @@
   <Row class="mt-2">
     <Column sm={4} md={3} lg={4}>
       <Tile>
-        <Patient patient={patients[selected_patient_idx]} />
-        <Button>scan</Button>
+        {#if preview_patient}
+          <PatientComponent patient={preview_patient} />
+          <Button on:click={scan}>scan</Button>
+        {/if}
       </Tile>
     </Column>
 
     <Column sm={4} md={5} lg={12}>
-      <Tabs>
-        <Tab label="Tomographic scan" />
-        <Tab label="Volume Renderer" />
-        <svelte:fragment slot="content">
-          <TabContent>
-            <Tomograph />
-            <Volumetric />
-
-          </TabContent>
-          <TabContent class="border-white border-2 border-solid ">
-
-          </TabContent>
-        </svelte:fragment>
-      </Tabs>
+      {#if patient}
+      <div class="flex gap-10">
+        
+        <Tomograph />
+        <Volumetric />
+      </div>
+      {/if}
     </Column>
   </Row>
 </Grid>

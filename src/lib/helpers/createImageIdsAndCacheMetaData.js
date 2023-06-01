@@ -21,7 +21,7 @@ const { calibratedPixelSpacingMetadataProvider } = utilities;
  * Uses the app config to choose which study to fetch, and which
  * dicom-web server to fetch it from.
  *
- * @returns {string[]} An array of imageIds for instances in the study.
+ * @returns {Promise<string[]>} An array of imageIds for instances in the study.
  */
 
 export default async function createImageIdsAndCacheMetaData({

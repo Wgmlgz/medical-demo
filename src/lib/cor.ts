@@ -34,8 +34,25 @@ const { MouseBindings } = csToolsEnums;
 
 await initDemo();
 
-export const create = async (element: HTMLDivElement) => {
-  const toolGroupId = 'STACK_TOOL_GROUP_ID';
+// Get Cornerstone imageIds and fetch metadata into RAM
+const stackImageIds = await createImageIdsAndCacheMetaData({
+  StudyInstanceUID: '1.3.6.1.4.1.14519.5.2.1.7009.2403.334240657131972136850343327463',
+  SeriesInstanceUID: '1.3.6.1.4.1.14519.5.2.1.7009.2403.226151125820845824875394858561',
+  wadoRsRoot: 'https://d3t6nz73ql33tx.cloudfront.net/dicomweb'
+});
+
+// Get Cornerstone imageIds and fetch metadata into RAM
+const volumeImageIds = await createImageIdsAndCacheMetaData({
+  StudyInstanceUID: '1.3.6.1.4.1.14519.5.2.1.7009.2403.871108593056125491804754960339',
+  SeriesInstanceUID: '1.3.6.1.4.1.14519.5.2.1.7009.2403.367700692008930469189923116409',
+  wadoRsRoot: 'https://domvja9iplmyu.cloudfront.net/dicomweb'
+});
+
+export const create = async (id: string, element: HTMLDivElement) => {
+  const toolGroupId = `STACK_TOOL_GROUP_ID${id}`;
+  const renderingEngineId = `myRenderingEngine${id}`;
+  const viewportId = `CT_STACK${id}`;
+
   const leftClickTools = [WindowLevelTool.toolName, PlanarRotateTool.toolName];
   const defaultLeftClickTool = leftClickTools[0];
 
@@ -78,19 +95,11 @@ export const create = async (element: HTMLDivElement) => {
   // hook instead of mouse buttons, it does not need to assign any mouse button.
   toolGroup.setToolActive(StackScrollMouseWheelTool.toolName);
 
-  // Get Cornerstone imageIds and fetch metadata into RAM
-  const imageIds = await createImageIdsAndCacheMetaData({
-    StudyInstanceUID: '1.3.6.1.4.1.14519.5.2.1.7009.2403.334240657131972136850343327463',
-    SeriesInstanceUID: '1.3.6.1.4.1.14519.5.2.1.7009.2403.226151125820845824875394858561',
-    wadoRsRoot: 'https://d3t6nz73ql33tx.cloudfront.net/dicomweb'
-  });
-
   // Instantiate a rendering engine
-  const renderingEngineId = 'myRenderingEngine';
+
   const renderingEngine = new RenderingEngine(renderingEngineId);
 
   // Create a stack viewport
-  const viewportId = 'CT_STACK';
   const viewportInput = {
     viewportId,
     type: ViewportType.STACK,
@@ -108,7 +117,7 @@ export const create = async (element: HTMLDivElement) => {
   const viewport = renderingEngine.getViewport(viewportId) as IStackViewport;
 
   // Define a stack containing a single image
-  const stack = [imageIds[0], imageIds[1], imageIds[2]];
+  const stack = [stackImageIds[0], stackImageIds[1], stackImageIds[2]];
 
   // Set the stack on the viewport
   viewport.setStack(stack);
@@ -119,13 +128,14 @@ export const create = async (element: HTMLDivElement) => {
   viewport.render();
 };
 
-export const create3d = async (content: HTMLDivElement) => {
+export const create3d = async (id: string, content: HTMLDivElement) => {
   // Define a unique id for the volume
-  const volumeName = 'CT_VOLUME_ID2'; // Id of the volume less loader prefix
-  const volumeLoaderScheme = 'cornerstoneStreamingImageVolume2'; // Loader id which defines which volume loader to use
+  const volumeName = `CT_VOLUME_ID${id}`; // Id of the volume less loader prefix
+  const volumeLoaderScheme = `cornerstoneStreamingImageVolume`; // Loader id which defines which volume loader to use
   const volumeId = `${volumeLoaderScheme}:${volumeName}`; // VolumeId with loader id + volume id
-  const renderingEngineId = 'myRenderingEngine2';
-  const viewportId = '3D_VIEWPORT2';
+  const renderingEngineId = `myRenderingEngine${id}`;
+  const viewportId = `3D_VIEWPORT${id}`;
+  const toolGroupId = `TOOL_GROUP_ID${id}`;
 
   const size = '500px';
   const viewportGrid = document.createElement('div');
@@ -144,14 +154,7 @@ export const create3d = async (content: HTMLDivElement) => {
 
   content.appendChild(viewportGrid);
 
-  const instructions = document.createElement('p');
-  instructions.innerText = 'Click the image to rotate it.';
-
-  content.append(instructions);
-
   // Init Cornerstone and related libraries
-
-  const toolGroupId = 'TOOL_GROUP_ID2';
 
   // Add tools to Cornerstone3D
 
@@ -173,13 +176,6 @@ export const create3d = async (content: HTMLDivElement) => {
         mouseButton: MouseBindings.Primary // Left Click
       }
     ]
-  });
-
-  // Get Cornerstone imageIds and fetch metadata into RAM
-  const imageIds = await createImageIdsAndCacheMetaData({
-    StudyInstanceUID: '1.3.6.1.4.1.14519.5.2.1.7009.2403.871108593056125491804754960339',
-    SeriesInstanceUID: '1.3.6.1.4.1.14519.5.2.1.7009.2403.367700692008930469189923116409',
-    wadoRsRoot: 'https://domvja9iplmyu.cloudfront.net/dicomweb'
   });
 
   // Instantiate a rendering engine
@@ -206,28 +202,22 @@ export const create3d = async (content: HTMLDivElement) => {
 
   // Define a volume in memory
   const volume = await volumeLoader.createAndCacheVolume(volumeId, {
-    imageIds
+    imageIds: volumeImageIds
   });
-
   // Set the volume to load
   volume.load();
 
-  const findPreset = (presetName: string) => {
-    const preset = CONSTANTS.VIEWPORT_PRESETS.find((preset) => preset.name === presetName);
-    if (!preset) throw Error('cannot find preset');
-    return preset;
-  };
-  setVolumesForViewports(renderingEngine, [{ volumeId }], [viewportId]).then(() => {
-    const volumeActor = renderingEngine.getViewport(viewportId).getDefaultActor()
-      .actor as Types.VolumeActor;
-
-    const preset = findPreset('CT-Bone');
-    utilities.applyPreset(volumeActor, preset);
-
-    viewport.render();
-  });
+  await setVolumesForViewports(renderingEngine, [{ volumeId }], [viewportId]);
 
   const viewport = renderingEngine.getViewport(viewportId);
+
+  const volumeActor = renderingEngine.getViewport(viewportId).getDefaultActor()
+    .actor as Types.VolumeActor;
+
+  const preset = findPreset('CT-Bone');
+  utilities.applyPreset(volumeActor, preset);
+
+  viewport.render();
   renderingEngine.render();
 
   const select = (presetName: string) => {
@@ -243,4 +233,10 @@ export const create3d = async (content: HTMLDivElement) => {
     select,
     options: CONSTANTS.VIEWPORT_PRESETS.map((preset, idx) => ({ id: idx, text: preset.name }))
   };
+};
+
+const findPreset = (presetName: string) => {
+  const preset = CONSTANTS.VIEWPORT_PRESETS.find((preset) => preset.name === presetName);
+  if (!preset) throw Error('cannot find preset');
+  return preset;
 };

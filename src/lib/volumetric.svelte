@@ -35,6 +35,7 @@
   import { Dropdown } from 'carbon-components-svelte';
   import type { DropdownItem } from 'carbon-components-svelte/types/Dropdown/Dropdown.svelte';
   import { onMount } from 'svelte';
+  import { makeId } from './utils';
   let selected_patient_idx = 0;
 
   let content: HTMLDivElement;
@@ -46,10 +47,10 @@
   ];
   let onSelect = (selectedItem: CustomEvent<{ selectedId: any; selectedItem: DropdownItem }>) => {};
   onMount(async () => {
-    console.log('huh?')
     const t = await import('./cor');
     const { create3d } = t;
-    const { options, select } = await create3d(content);
+    const { options, select } = await create3d(makeId(10), content);
+    console.log(options, select);
 
     items = options;
     onSelect = (e) => {
@@ -58,10 +59,10 @@
   });
 </script>
 
-<Dropdown on:select={onSelect} bind:selectedId={selected_patient_idx} {items} />
-<div
-  class="h-500px w-500px"
-  bind:this={content}
-  id="viewport-element"
-  on:contextmenu|preventDefault={() => {}}
-/>
+<div>
+  <div class="h-500px w-500px" bind:this={content} on:contextmenu|preventDefault={() => {}} />
+  <Dropdown on:select={onSelect} bind:selectedId={selected_patient_idx} {items} />
+  <p>
+    Click the image to rotate it.
+  </p>
+</div>
