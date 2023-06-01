@@ -55,9 +55,11 @@
         <svelte:fragment slot="content">
           <TabContent>
             <Tomograph />
+            <Volumetric />
+
           </TabContent>
           <TabContent class="border-white border-2 border-solid ">
-            <Volumetric />
+
           </TabContent>
         </svelte:fragment>
       </Tabs>

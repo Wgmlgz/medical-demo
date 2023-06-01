@@ -1,93 +1,48 @@
-import { RenderingEngine, type Types, Enums } from '@cornerstonejs/core';
 import {
-  initDemo,
-  createImageIdsAndCacheMetaData,
-  addDropdownToToolbar,
-} from './helpers';
-import * as cornerstoneTools from '@cornerstonejs/tools/dist/umd';
-
-// This is for debugging purposes
-console.warn(
-  'Click on index.ts to open source code for this example --------->'
-);
+  RenderingEngine,
+  type Types,
+  Enums,
+  setVolumesForViewports,
+  volumeLoader,
+  utilities,
+  CONSTANTS
+} from '@cornerstonejs/core';
+import { initDemo, createImageIdsAndCacheMetaData, cornerstoneTools } from './helpers';
+import type { IStackViewport } from '@cornerstonejs/core/dist/esm/types';
 
 const {
   PanTool,
   WindowLevelTool,
   StackScrollMouseWheelTool,
+  TrackballRotateTool,
   ZoomTool,
   PlanarRotateTool,
   ToolGroupManager,
-  Enums: csToolsEnums,
+  Enums: csToolsEnums
 } = cornerstoneTools;
+
+// Add tools to Cornerstone3D
+cornerstoneTools.addTool(PanTool);
+cornerstoneTools.addTool(WindowLevelTool);
+cornerstoneTools.addTool(StackScrollMouseWheelTool);
+cornerstoneTools.addTool(ZoomTool);
+cornerstoneTools.addTool(PlanarRotateTool);
+cornerstoneTools.addTool(TrackballRotateTool);
 
 const { ViewportType } = Enums;
 const { MouseBindings } = csToolsEnums;
 
-const toolGroupId = 'STACK_TOOL_GROUP_ID';
-const leftClickTools = [WindowLevelTool.toolName, PlanarRotateTool.toolName];
-const defaultLeftClickTool = leftClickTools[0];
-let currentLeftClickTool = leftClickTools[0];
+await initDemo();
 
-
-const content = document.getElementById('content');
-const element = document.createElement('div');
-
-// Disable right click context menu so we can have right click tools
-element.oncontextmenu = (e) => e.preventDefault();
-
-element.id = 'cornerstone-element';
-element.style.width = '500px';
-element.style.height = '500px';
-
-content.appendChild(element);
-
-const instructions = document.createElement('p');
-instructions.innerText =
-  'Middle Click: Pan\nRight Click: Zoom\n Mouse Wheel: Stack Scroll';
-
-content.append(instructions);
-// ============================= //
-
-addDropdownToToolbar({
-  options: {
-    values: leftClickTools,
-    defaultValue: defaultLeftClickTool,
-  },
-  onSelectedValueChange: (selectedValue) => {
-    const toolGroup = ToolGroupManager.getToolGroup(toolGroupId);
-
-    toolGroup.setToolPassive(currentLeftClickTool);
-
-    toolGroup.setToolActive(<string>selectedValue, {
-      bindings: [
-        {
-          mouseButton: MouseBindings.Primary, // Left Click
-        },
-      ],
-    });
-
-    currentLeftClickTool = selectedValue;
-  },
-});
-
-/**
- * Runs the demo
- */
-async function run() {
-  // Init Cornerstone and related libraries
-  await initDemo();
-
-  // Add tools to Cornerstone3D
-  cornerstoneTools.addTool(PanTool);
-  cornerstoneTools.addTool(WindowLevelTool);
-  cornerstoneTools.addTool(StackScrollMouseWheelTool);
-  cornerstoneTools.addTool(ZoomTool);
-  cornerstoneTools.addTool(PlanarRotateTool);
+export const create = async (element: HTMLDivElement) => {
+  const toolGroupId = 'STACK_TOOL_GROUP_ID';
+  const leftClickTools = [WindowLevelTool.toolName, PlanarRotateTool.toolName];
+  const defaultLeftClickTool = leftClickTools[0];
 
   // Define a tool group, which defines how mouse events map to tool commands for
   // Any viewport using the group
   const toolGroup = ToolGroupManager.createToolGroup(toolGroupId);
+  if (!toolGroup) throw Error('failed to create toolgroup');
 
   // Add tools to the tool group
   toolGroup.addTool(WindowLevelTool.toolName);
@@ -101,23 +56,23 @@ async function run() {
   toolGroup.setToolActive(defaultLeftClickTool, {
     bindings: [
       {
-        mouseButton: MouseBindings.Primary, // Left Click
-      },
-    ],
+        mouseButton: MouseBindings.Auxiliary // Middle Click
+      }
+    ]
   });
   toolGroup.setToolActive(PanTool.toolName, {
     bindings: [
       {
-        mouseButton: MouseBindings.Auxiliary, // Middle Click
-      },
-    ],
+        mouseButton: MouseBindings.Primary // Left Click
+      }
+    ]
   });
   toolGroup.setToolActive(ZoomTool.toolName, {
     bindings: [
       {
-        mouseButton: MouseBindings.Secondary, // Right Click
-      },
-    ],
+        mouseButton: MouseBindings.Secondary // Right Click
+      }
+    ]
   });
   // As the Stack Scroll mouse wheel is a tool using the `mouseWheelCallback`
   // hook instead of mouse buttons, it does not need to assign any mouse button.
@@ -125,11 +80,9 @@ async function run() {
 
   // Get Cornerstone imageIds and fetch metadata into RAM
   const imageIds = await createImageIdsAndCacheMetaData({
-    StudyInstanceUID:
-      '1.3.6.1.4.1.14519.5.2.1.7009.2403.334240657131972136850343327463',
-    SeriesInstanceUID:
-      '1.3.6.1.4.1.14519.5.2.1.7009.2403.226151125820845824875394858561',
-    wadoRsRoot: 'https://d3t6nz73ql33tx.cloudfront.net/dicomweb',
+    StudyInstanceUID: '1.3.6.1.4.1.14519.5.2.1.7009.2403.334240657131972136850343327463',
+    SeriesInstanceUID: '1.3.6.1.4.1.14519.5.2.1.7009.2403.226151125820845824875394858561',
+    wadoRsRoot: 'https://d3t6nz73ql33tx.cloudfront.net/dicomweb'
   });
 
   // Instantiate a rendering engine
@@ -143,8 +96,8 @@ async function run() {
     type: ViewportType.STACK,
     element,
     defaultOptions: {
-      background: <Types.Point3>[0.2, 0, 0.2],
-    },
+      background: <Types.Point3>[0.2, 0, 0.2]
+    }
   };
 
   renderingEngine.enableElement(viewportInput);
@@ -152,9 +105,7 @@ async function run() {
   // Set the tool group on the viewport
 
   // Get the stack viewport that was created
-  const viewport = <Types.IStackViewport>(
-    renderingEngine.getViewport(viewportId)
-  );
+  const viewport = renderingEngine.getViewport(viewportId) as IStackViewport;
 
   // Define a stack containing a single image
   const stack = [imageIds[0], imageIds[1], imageIds[2]];
@@ -162,10 +113,134 @@ async function run() {
   // Set the stack on the viewport
   viewport.setStack(stack);
   toolGroup.addViewport(viewportId, renderingEngineId);
-  console.log(toolGroup)
+  console.log(toolGroup);
 
   // Render the image
   viewport.render();
-}
+};
 
-run();
+export const create3d = async (content: HTMLDivElement) => {
+  // Define a unique id for the volume
+  const volumeName = 'CT_VOLUME_ID2'; // Id of the volume less loader prefix
+  const volumeLoaderScheme = 'cornerstoneStreamingImageVolume2'; // Loader id which defines which volume loader to use
+  const volumeId = `${volumeLoaderScheme}:${volumeName}`; // VolumeId with loader id + volume id
+  const renderingEngineId = 'myRenderingEngine2';
+  const viewportId = '3D_VIEWPORT2';
+
+  const size = '500px';
+  const viewportGrid = document.createElement('div');
+
+  viewportGrid.style.display = 'flex';
+  viewportGrid.style.display = 'flex';
+  viewportGrid.style.flexDirection = 'row';
+
+  const element1 = document.createElement('div');
+  element1.oncontextmenu = () => false;
+
+  element1.style.width = size;
+  element1.style.height = size;
+
+  viewportGrid.appendChild(element1);
+
+  content.appendChild(viewportGrid);
+
+  const instructions = document.createElement('p');
+  instructions.innerText = 'Click the image to rotate it.';
+
+  content.append(instructions);
+
+  // Init Cornerstone and related libraries
+
+  const toolGroupId = 'TOOL_GROUP_ID2';
+
+  // Add tools to Cornerstone3D
+
+  // Define a tool group, which defines how mouse events map to tool commands for
+  // Any viewport using the group
+  const toolGroup = ToolGroupManager.createToolGroup(toolGroupId);
+  if (!toolGroup) throw Error('failed to create toolgroup');
+
+  // Add the tools to the tool group and specify which volume they are pointing at
+  toolGroup.addTool(TrackballRotateTool.toolName, {
+    configuration: { volumeId }
+  });
+
+  // Set the initial state of the tools, here we set one tool active on left click.
+  // This means left click will draw that tool.
+  toolGroup.setToolActive(TrackballRotateTool.toolName, {
+    bindings: [
+      {
+        mouseButton: MouseBindings.Primary // Left Click
+      }
+    ]
+  });
+
+  // Get Cornerstone imageIds and fetch metadata into RAM
+  const imageIds = await createImageIdsAndCacheMetaData({
+    StudyInstanceUID: '1.3.6.1.4.1.14519.5.2.1.7009.2403.871108593056125491804754960339',
+    SeriesInstanceUID: '1.3.6.1.4.1.14519.5.2.1.7009.2403.367700692008930469189923116409',
+    wadoRsRoot: 'https://domvja9iplmyu.cloudfront.net/dicomweb'
+  });
+
+  // Instantiate a rendering engine
+  const renderingEngine = new RenderingEngine(renderingEngineId);
+
+  // Create the viewports
+
+  const viewportInputArray = [
+    {
+      viewportId: viewportId,
+      type: ViewportType.VOLUME_3D,
+      element: element1,
+      defaultOptions: {
+        orientation: Enums.OrientationAxis.CORONAL,
+        background: <Types.Point3>[0.2, 0, 0.2]
+      }
+    }
+  ];
+
+  renderingEngine.setViewports(viewportInputArray);
+
+  // Set the tool group on the viewports
+  toolGroup.addViewport(viewportId, renderingEngineId);
+
+  // Define a volume in memory
+  const volume = await volumeLoader.createAndCacheVolume(volumeId, {
+    imageIds
+  });
+
+  // Set the volume to load
+  volume.load();
+
+  const findPreset = (presetName: string) => {
+    const preset = CONSTANTS.VIEWPORT_PRESETS.find((preset) => preset.name === presetName);
+    if (!preset) throw Error('cannot find preset');
+    return preset;
+  };
+  setVolumesForViewports(renderingEngine, [{ volumeId }], [viewportId]).then(() => {
+    const volumeActor = renderingEngine.getViewport(viewportId).getDefaultActor()
+      .actor as Types.VolumeActor;
+
+    const preset = findPreset('CT-Bone');
+    utilities.applyPreset(volumeActor, preset);
+
+    viewport.render();
+  });
+
+  const viewport = renderingEngine.getViewport(viewportId);
+  renderingEngine.render();
+
+  const select = (presetName: string) => {
+    const volumeActor = renderingEngine.getViewport(viewportId).getDefaultActor()
+      .actor as Types.VolumeActor;
+
+    const preset = findPreset(presetName);
+    utilities.applyPreset(volumeActor, preset);
+
+    renderingEngine.render();
+  };
+  return {
+    select,
+    options: CONSTANTS.VIEWPORT_PRESETS.map((preset, idx) => ({ id: idx, text: preset.name }))
+  };
+};

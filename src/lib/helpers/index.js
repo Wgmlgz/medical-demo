@@ -6,27 +6,22 @@ import setCtTransferFunctionForVolumeActor, {
 } from './setCtTransferFunctionForVolumeActor';
 import setPetTransferFunctionForVolumeActor from './setPetTransferFunctionForVolumeActor';
 import setPetColorMapTransferFunctionForVolumeActor from './setPetColorMapTransferFunctionForVolumeActor';
-import setTitleAndDescription from './setTitleAndDescription';
-import addButtonToToolbar from './addButtonToToolbar';
-import addCheckboxToToolbar from './addCheckboxToToolbar';
-import addToggleButtonToToolbar from './addToggleButtonToToolbar';
-import addDropdownToToolbar from './addDropdownToToolbar';
-import addSliderToToolbar from './addSliderToToolbar';
 import camera from './camera';
+import * as cornerstoneToolsRaw from '@cornerstonejs/tools/dist/umd';
+
+/**
+ * @type {import("@cornerstonejs/tools")}
+ */
+const cornerstoneTools = cornerstoneToolsRaw
 
 export {
   createImageIdsAndCacheMetaData,
   wadoURICreateImageIds,
   initDemo,
-  setTitleAndDescription,
-  addButtonToToolbar,
-  addCheckboxToToolbar,
-  addDropdownToToolbar,
-  addSliderToToolbar,
-  addToggleButtonToToolbar,
   setPetColorMapTransferFunctionForVolumeActor,
   setPetTransferFunctionForVolumeActor,
   setCtTransferFunctionForVolumeActor,
   ctVoiRange,
   camera,
+  cornerstoneTools
 };
