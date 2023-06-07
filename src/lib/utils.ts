@@ -9,6 +9,7 @@ export interface Patient {
   city: string;
   street: string;
   building: string;
+  url: string;
 }
 
 export const patients_example: Patient[] = [
@@ -23,6 +24,7 @@ export const patients_example: Patient[] = [
     city: 'Saint Petersburg',
     street: 'Nevsky Avenue',
     building: '114',
+    url: '/ct.dcm'
   },
   {
     first_name: 'Amogus',
@@ -35,7 +37,8 @@ export const patients_example: Patient[] = [
     city: 'Moscow',
     street: 'Tverskaya',
     building: '15',
-  },
+    url: '/ct.dcm'
+  }
 ];
 export const makeId = (length: number) => {
   let result = '';

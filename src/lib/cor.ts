@@ -1,3 +1,5 @@
+import { resize } from 'cornerstone-core';
+/* eslint-disable @typescript-eslint/ban-ts-comment */
 import {
   RenderingEngine,
   type Types,
@@ -5,11 +7,22 @@ import {
   setVolumesForViewports,
   volumeLoader,
   utilities,
-  CONSTANTS
+  CONSTANTS,
+  cache
 } from '@cornerstonejs/core';
-import { initDemo, createImageIdsAndCacheMetaData, cornerstoneTools } from './helpers';
-import type { IStackViewport } from '@cornerstonejs/core/dist/esm/types';
-
+import { initDemo, createImageIdsAndCacheMetaData, cornerstoneTools, findPreset } from './helpers';
+import type {
+  IStackViewport,
+  IVolumeViewport,
+  PublicViewportInput
+} from '@cornerstonejs/core/dist/esm/types';
+// @ts-ignore
+import cornerstoneDICOMImageLoader from '@cornerstonejs/dicom-image-loader';
+import {
+  convertMultiframeImageIds,
+  prefetchMetadataInformation
+} from './helpers/convertMultiframeImageIds';
+import { SusTool } from './sus_tool';
 const {
   PanTool,
   WindowLevelTool,
@@ -27,6 +40,7 @@ cornerstoneTools.addTool(WindowLevelTool);
 cornerstoneTools.addTool(StackScrollMouseWheelTool);
 cornerstoneTools.addTool(ZoomTool);
 cornerstoneTools.addTool(PlanarRotateTool);
+cornerstoneTools.addTool(SusTool);
 cornerstoneTools.addTool(TrackballRotateTool);
 
 const { ViewportType } = Enums;
@@ -35,20 +49,20 @@ const { MouseBindings } = csToolsEnums;
 await initDemo();
 
 // Get Cornerstone imageIds and fetch metadata into RAM
-const stackImageIds = await createImageIdsAndCacheMetaData({
+export const stackImageIds = await createImageIdsAndCacheMetaData({
   StudyInstanceUID: '1.3.6.1.4.1.14519.5.2.1.7009.2403.334240657131972136850343327463',
   SeriesInstanceUID: '1.3.6.1.4.1.14519.5.2.1.7009.2403.226151125820845824875394858561',
   wadoRsRoot: 'https://d3t6nz73ql33tx.cloudfront.net/dicomweb'
 });
 
 // Get Cornerstone imageIds and fetch metadata into RAM
-const volumeImageIds = await createImageIdsAndCacheMetaData({
+export const volumeImageIds = await createImageIdsAndCacheMetaData({
   StudyInstanceUID: '1.3.6.1.4.1.14519.5.2.1.7009.2403.871108593056125491804754960339',
   SeriesInstanceUID: '1.3.6.1.4.1.14519.5.2.1.7009.2403.367700692008930469189923116409',
   wadoRsRoot: 'https://domvja9iplmyu.cloudfront.net/dicomweb'
 });
 
-export const create = async (id: string, element: HTMLDivElement) => {
+export const createStack = async (id: string, element: HTMLDivElement, imageIds: string[]) => {
   const toolGroupId = `STACK_TOOL_GROUP_ID${id}`;
   const renderingEngineId = `myRenderingEngine${id}`;
   const viewportId = `CT_STACK${id}`;
@@ -111,24 +125,27 @@ export const create = async (id: string, element: HTMLDivElement) => {
 
   renderingEngine.enableElement(viewportInput);
 
-  // Set the tool group on the viewport
-
-  // Get the stack viewport that was created
   const viewport = renderingEngine.getViewport(viewportId) as IStackViewport;
 
-  // Define a stack containing a single image
-  const stack = [stackImageIds[0], stackImageIds[1], stackImageIds[2]];
-
-  // Set the stack on the viewport
-  viewport.setStack(stack);
+  // const stack = [stackImageIds[0], stackImageIds[1], stackImageIds[2]];
+  // viewport.setStack(volumeImageIds);
+  updateStack(viewport, imageIds);
   toolGroup.addViewport(viewportId, renderingEngineId);
-  console.log(toolGroup);
-
-  // Render the image
   viewport.render();
+
+  const loadFile = async (file: File) => {
+    await loadAndViewStackImage(viewport, file);
+  };
+  const fixSize = () => {
+    renderingEngine.resize();
+  };
+  return {
+    loadFile,
+    fixSize
+  };
 };
 
-export const create3d = async (id: string, content: HTMLDivElement) => {
+export const createVolume = async (id: string, content: HTMLDivElement, imageIds: string[]) => {
   // Define a unique id for the volume
   const volumeName = `CT_VOLUME_ID${id}`; // Id of the volume less loader prefix
   const volumeLoaderScheme = `cornerstoneStreamingImageVolume`; // Loader id which defines which volume loader to use
@@ -136,30 +153,6 @@ export const create3d = async (id: string, content: HTMLDivElement) => {
   const renderingEngineId = `myRenderingEngine${id}`;
   const viewportId = `3D_VIEWPORT${id}`;
   const toolGroupId = `TOOL_GROUP_ID${id}`;
-
-  const size = '500px';
-  const viewportGrid = document.createElement('div');
-
-  viewportGrid.style.display = 'flex';
-  viewportGrid.style.display = 'flex';
-  viewportGrid.style.flexDirection = 'row';
-
-  const element1 = document.createElement('div');
-  element1.oncontextmenu = () => false;
-
-  element1.style.width = size;
-  element1.style.height = size;
-
-  viewportGrid.appendChild(element1);
-
-  content.appendChild(viewportGrid);
-
-  // Init Cornerstone and related libraries
-
-  // Add tools to Cornerstone3D
-
-  // Define a tool group, which defines how mouse events map to tool commands for
-  // Any viewport using the group
   const toolGroup = ToolGroupManager.createToolGroup(toolGroupId);
   if (!toolGroup) throw Error('failed to create toolgroup');
 
@@ -167,6 +160,10 @@ export const create3d = async (id: string, content: HTMLDivElement) => {
   toolGroup.addTool(TrackballRotateTool.toolName, {
     configuration: { volumeId }
   });
+  toolGroup.addTool(SusTool.toolName, {
+    configuration: { volumeId }
+  });
+  toolGroup.addTool(ZoomTool.toolName);
 
   // Set the initial state of the tools, here we set one tool active on left click.
   // This means left click will draw that tool.
@@ -178,16 +175,31 @@ export const create3d = async (id: string, content: HTMLDivElement) => {
     ]
   });
 
+  toolGroup.setToolActive(SusTool.toolName, {
+    bindings: [
+      {
+        mouseButton: MouseBindings.Auxiliary // Middle Click
+      }
+    ]
+  });
+  toolGroup.setToolActive(ZoomTool.toolName, {
+    bindings: [
+      {
+        mouseButton: MouseBindings.Secondary // Right Click
+      }
+    ]
+  });
+
   // Instantiate a rendering engine
   const renderingEngine = new RenderingEngine(renderingEngineId);
 
   // Create the viewports
 
-  const viewportInputArray = [
+  const viewportInputArray: PublicViewportInput[] = [
     {
       viewportId: viewportId,
       type: ViewportType.VOLUME_3D,
-      element: element1,
+      element: content,
       defaultOptions: {
         orientation: Enums.OrientationAxis.CORONAL,
         background: <Types.Point3>[0.2, 0, 0.2]
@@ -199,25 +211,17 @@ export const create3d = async (id: string, content: HTMLDivElement) => {
 
   // Set the tool group on the viewports
   toolGroup.addViewport(viewportId, renderingEngineId);
-
-  // Define a volume in memory
-  const volume = await volumeLoader.createAndCacheVolume(volumeId, {
-    imageIds: volumeImageIds
-  });
-  // Set the volume to load
-  volume.load();
-
-  await setVolumesForViewports(renderingEngine, [{ volumeId }], [viewportId]);
-
   const viewport = renderingEngine.getViewport(viewportId);
+  renderingEngine.render();
 
-  const volumeActor = renderingEngine.getViewport(viewportId).getDefaultActor()
-    .actor as Types.VolumeActor;
+  await updateVolume(volumeId, renderingEngine, viewportId, imageIds);
 
-  const preset = findPreset('CT-Bone');
-  utilities.applyPreset(volumeActor, preset);
+  // viewport.render();
+  // renderingEngine.render();
 
-  viewport.render();
+  // element1.style.width = '3000px';
+  // element1.style.height = '3000px';
+  // renderingEngine.setViewports(viewportInputArray);
   renderingEngine.render();
 
   const select = (presetName: string) => {
@@ -229,14 +233,80 @@ export const create3d = async (id: string, content: HTMLDivElement) => {
 
     renderingEngine.render();
   };
+
+  const loadFile = async (file: File) => {
+    await loadAndViewVolumeImage(volumeId, renderingEngine, viewportId, file);
+  };
+  const fixSize = () => {
+    renderingEngine.resize();
+  };
   return {
     select,
+    loadFile,
+    fixSize,
     options: CONSTANTS.VIEWPORT_PRESETS.map((preset, idx) => ({ id: idx, text: preset.name }))
   };
 };
 
-const findPreset = (presetName: string) => {
-  const preset = CONSTANTS.VIEWPORT_PRESETS.find((preset) => preset.name === presetName);
-  if (!preset) throw Error('cannot find preset');
-  return preset;
+async function loadAndViewStackImage(viewport: IStackViewport, file: File) {
+  const stack = await preloadImage(file);
+  await updateStack(viewport, stack);
+}
+const updateStack = async (viewport: IStackViewport, imageIds: string[]) => {
+  await viewport.setStack(imageIds);
+  viewport.render();
+
+  const imageData = viewport.getImageData();
+};
+
+async function loadAndViewVolumeImage(
+  volumeId: string,
+  renderingEngine: RenderingEngine,
+  viewportId: string,
+  file: File
+) {
+  const stackImageIds = await preloadImage(file);
+
+  // Define a volume in memory
+  updateVolume(volumeId, renderingEngine, viewportId, stackImageIds);
+}
+const updateVolume = async (
+  volumeId: string,
+  renderingEngine: RenderingEngine,
+  viewportId: string,
+  imageIds: string[]
+) => {
+  const volume = await volumeLoader.createAndCacheVolume(volumeId, {
+    imageIds
+  });
+
+  // Set the volume to load
+  volume.load();
+
+  await setVolumesForViewports(renderingEngine, [{ volumeId }], [viewportId]);
+
+  const volumeActor = renderingEngine.getViewport(viewportId).getDefaultActor()
+    .actor as Types.VolumeActor;
+
+  const preset = findPreset('CT-Bone');
+  utilities.applyPreset(volumeActor, preset);
+
+  const viewport = renderingEngine.getViewport(viewportId);
+  viewport.render();
+  // Set the stack on the viewport
+  // Set the VOI of the stack
+  // viewport.setProperties({ voiRange: ctVoiRange });
+  // Render the image
+  // viewport.render();
+
+  // const imageData = viewport.getImageData();
+};
+
+export const preloadImage = async (file: File) => {
+  cache.purgeCache();
+  cache.purgeVolumeCache();
+  const imageId = cornerstoneDICOMImageLoader.wadouri.fileManager.add(file);
+  await prefetchMetadataInformation([imageId]);
+  const stack = convertMultiframeImageIds([imageId]);
+  return stack;
 };

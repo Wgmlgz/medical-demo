@@ -1,68 +1,72 @@
-<!-- <script lang="ts">
-  import { onMount } from 'svelte';
-
-  let w: number;
-  let h: number;
-  let resize: (x: number, y: number) => void = () => {};
-  let canvas: HTMLCanvasElement;
-  let gui_container: HTMLElement;
-
-  $: resize(w, h);
-  onMount(async () => {
-    const { init } = await import('./tree');
-    const { onResize } = await init(canvas, gui_container);
-    resize = onResize;
-  });
-</script>
-
-<div class="relative aspect-ratio-1/1">
-  <div
-    bind:clientWidth={w}
-    bind:clientHeight={h}
-    class="w-full h-full"
-    on:resize={(e) => {
-      console.log(e);
-    }}
-  >
-    <canvas bind:this={canvas} width="100" height="100" />
-  </div>
-<div class="absolute top-0 right-0" bind:this={gui_container} />
-
-</div>
- -->
-
 <script lang="ts">
-  import { Dropdown } from 'carbon-components-svelte';
+  import { Button, Dropdown, Tile } from 'carbon-components-svelte';
   import type { DropdownItem } from 'carbon-components-svelte/types/Dropdown/Dropdown.svelte';
+  import screenfull from 'screenfull';
+  import Maximize from 'carbon-icons-svelte/lib/Maximize.svelte';
+  import Minimize from 'carbon-icons-svelte/lib/Minimize.svelte';
   import { onMount } from 'svelte';
   import { makeId } from './utils';
+
+  export let image_ids: string[];
+
   let selected_patient_idx = 0;
 
   let content: HTMLDivElement;
-  let items: DropdownItem[] = [
+  let options: DropdownItem[] = [
     {
       id: 0,
       text: 'CT-Bone'
     }
   ];
-  let onSelect = (selectedItem: CustomEvent<{ selectedId: any; selectedItem: DropdownItem }>) => {};
+  let select: (presetName: string) => void;
+  let loadFile: (file: File) => Promise<void>;
+  let fixSize: () => void = () => {};
+  let element: HTMLElement;
+
+  let w: number, h: number;
+  $: if (w && h) fixSize();
   onMount(async () => {
     const t = await import('./cor');
-    const { create3d } = t;
-    const { options, select } = await create3d(makeId(10), content);
-    console.log(options, select);
-
-    items = options;
-    onSelect = (e) => {
-      select(e.detail.selectedItem.text);
-    };
+    const { createVolume } = t;
+    ({ options, select, loadFile, fixSize } = await createVolume(makeId(10), content, image_ids));
   });
+
+  let icon = Maximize;
 </script>
 
-<div>
-  <div class="h-500px w-500px" bind:this={content} on:contextmenu|preventDefault={() => {}} />
-  <Dropdown on:select={onSelect} bind:selectedId={selected_patient_idx} {items} />
-  <p>
-    Click the image to rotate it.
-  </p>
+<div
+  bind:this={element}
+  class="w-full h-full flex flex-col relative"
+  on:resize={fixSize}
+  bind:clientWidth={w}
+  bind:clientHeight={h}
+>
+  <Tile class="w-full">
+    <div class="flex w-full gap-2 items-end">
+      <Dropdown
+        titleText="Preset"
+        on:select={(e) => select(e.detail.selectedItem.text)}
+        bind:selectedId={selected_patient_idx}
+        items={options}
+      />
+      <Button
+        style="margin-left: auto"
+        kind="secondary"
+        {icon}
+        iconDescription="Toggle fullscreen"
+        on:click={async () => {
+          await screenfull.toggle(element);
+          icon = screenfull.isFullscreen ? Minimize : Maximize;
+        }}
+      />
+    </div>
+  </Tile>
+  <div class="grow h-full" bind:this={content} on:contextmenu|preventDefault={() => {}} />
+
+  <div class="absolute bottom-10px left-10px flex gap-2 flex-col">
+    <p>Click the image to rotate it.</p>
+    <p>Middle Click: adjust window</p>
+    <p>Right Click: Zoom</p>
+    <div class="flex gap-2 item" />
+  </div>
 </div>

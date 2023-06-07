@@ -38,7 +38,7 @@ function getFrameInformation(imageId) {
  * For each imageId representing a multiframe image with n frames,
  * it will create n new imageids, one for each frame, and returns the new list of imageids
  * If a particular imageid no refer to a mutiframe image data, it will be just copied into the new list
- * @returns new list of imageids where each imageid represents a frame
+ * @returns {string[]} new list of imageids where each imageid represents a frame
  */
 function convertMultiframeImageIds(imageIds) {
   const newImageIds = [];
