@@ -83,7 +83,7 @@
           <Button
             on:click={async () => {
               if (!preview_patient) return;
-              const response = await fetch(new URL(preview_patient.url, import.meta.url).href);
+              const response = await fetch(preview_patient.url);
               let data = await response.blob();
               let metadata = {
                 type: 'image/jpeg'

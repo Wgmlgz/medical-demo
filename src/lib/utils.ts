@@ -24,7 +24,7 @@ export const patients_example: Patient[] = [
     city: 'Saint Petersburg',
     street: 'Nevsky Avenue',
     building: '114',
-    url: '/ct.dcm'
+    url: './ct.dcm'
   },
   {
     first_name: 'DICOM',
@@ -37,7 +37,7 @@ export const patients_example: Patient[] = [
     city: '',
     street: '',
     building: '',
-    url: '/DICOM/CBCT.zip'
+    url: './DICOM/CBCT.zip'
   },
   {
     first_name: 'DICOM',
@@ -50,7 +50,7 @@ export const patients_example: Patient[] = [
     city: '',
     street: '',
     building: '',
-    url: '/DICOM/Head_anon.zip'
+    url: './DICOM/Head_anon.zip'
   },
   {
     first_name: 'DICOM',
@@ -63,7 +63,7 @@ export const patients_example: Patient[] = [
     city: '',
     street: '',
     building: '',
-    url: '/DICOM/Petrov.zip'
+    url: './DICOM/Petrov.zip'
   },
   {
     first_name: 'DICOM',
@@ -76,7 +76,7 @@ export const patients_example: Patient[] = [
     city: '',
     street: '',
     building: '',
-    url: '/DICOM/phantom.dcm.zip'
+    url: './DICOM/phantom.dcm.zip'
   }
 ];
 export const makeId = (length: number) => {
