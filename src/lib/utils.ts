@@ -27,17 +27,56 @@ export const patients_example: Patient[] = [
     url: '/ct.dcm'
   },
   {
-    first_name: 'Amogus',
-    last_name: 'Test',
-    father_name: 'Ivanovna',
-    sex: 'female',
+    first_name: 'DICOM',
+    last_name: 'CBCT.zip',
+    father_name: '',
+    sex: '',
     birth_date: new Date(),
-    insurance: 'test',
-    country: 'Russia',
-    city: 'Moscow',
-    street: 'Tverskaya',
-    building: '15',
-    url: '/ct.dcm'
+    insurance: '',
+    country: '',
+    city: '',
+    street: '',
+    building: '',
+    url: '/DICOM/CBCT.zip'
+  },
+  {
+    first_name: 'DICOM',
+    last_name: 'Head_anon.zip',
+    father_name: '',
+    sex: '',
+    birth_date: new Date(),
+    insurance: '',
+    country: '',
+    city: '',
+    street: '',
+    building: '',
+    url: '/DICOM/Head_anon.zip'
+  },
+  {
+    first_name: 'DICOM',
+    last_name: 'Petrov.zip',
+    father_name: '',
+    sex: '',
+    birth_date: new Date(),
+    insurance: '',
+    country: '',
+    city: '',
+    street: '',
+    building: '',
+    url: '/DICOM/Petrov.zip'
+  },
+  {
+    first_name: 'DICOM',
+    last_name: 'phantom.dcm.zip',
+    father_name: '',
+    sex: '',
+    birth_date: new Date(),
+    insurance: '',
+    country: '',
+    city: '',
+    street: '',
+    building: '',
+    url: '/DICOM/phantom.dcm.zip'
   }
 ];
 export const makeId = (length: number) => {

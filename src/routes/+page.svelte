@@ -4,7 +4,7 @@
   import { Tabs, Tab, TabContent, Dropdown, FileUploaderButton } from 'carbon-components-svelte';
   import { Grid, Row, Column } from 'carbon-components-svelte';
   import { Tile } from 'carbon-components-svelte';
-
+  import { ProgressBar } from 'carbon-components-svelte';
   import {
     Form,
     FormGroup,
@@ -26,21 +26,37 @@
 
   let preview_patient: Patient | null = null;
   let patient: Patient | null = null;
+  let progress = {
+    value: null as number | null,
+    status: 'active' as 'active' | 'finished' | 'error',
+    helperText: ''
+  };
 
   $: {
     preview_patient = patients[selected_patient_idx];
     image_ids = [];
+    progress.value = null;
   }
-  const scan = async (file: File) => {
+  const scan: typeof import('$lib/cor')['preloadImage'] = async (files, onProgress) => {
     const { preloadImage, stackImageIds, volumeImageIds } = await import('$lib/cor');
-
-    patient = preview_patient;
-    // const t = [, stackImageIds, volumeImageIds];
-    image_ids = await preloadImage(file)
+    try {
+      progress.helperText = '';
+      progress.status = 'active';
+      patient = preview_patient;
+      image_ids = await preloadImage(files, (x) => (progress.value = x));
+      progress.status = 'finished';
+      return image_ids;
+    } catch (e: unknown) {
+      if (typeof e === 'object' && e) {
+        if ('message' in e && typeof e.message === 'string') progress.helperText = e.message;
+        if ('error' in e && typeof e.error === 'string') progress.helperText = e.error;
+      }
+      progress.status = 'error';
+      return [];
+    }
   };
 
   let image_ids: string[] | null = null;
-  // let files: File[];
 </script>
 
 <Grid>
@@ -67,25 +83,35 @@
           <Button
             on:click={async () => {
               if (!preview_patient) return;
-              const response = await fetch(preview_patient.url);
+              const response = await fetch(new URL(preview_patient.url, import.meta.url).href);
               let data = await response.blob();
               let metadata = {
                 type: 'image/jpeg'
               };
-              let file = new File([data], preview_patient.url);
-              scan(file);
+              let files = [new File([data], preview_patient.url)];
+              await scan(files);
             }}>Scan</Button
           >
           <!-- <FileUploaderButton
-            on:change={(e) => {
+            multiple
+            on:change={async (e) => {
               e.preventDefault();
               e.stopPropagation();
               const files = e.detail;
               const file = files[0];
-              scan(file);
+              await scan(files, (x) => (progress.value = x));
             }}
             labelText="scan"
           /> -->
+          {#if progress.value !== null}
+            <ProgressBar
+              value={progress.value * 100}
+              status={progress.status}
+              labelText="Load status"
+              helperText={progress.helperText || `${Math.floor(progress.value * 100 * 100) / 100}%`}
+            />
+          {/if}
+
           <!-- <Button on:click={scan}>scan</Button> -->
         {/if}
       </Tile>

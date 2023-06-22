@@ -23,6 +23,9 @@ import {
   prefetchMetadataInformation
 } from './helpers/convertMultiframeImageIds';
 import { SusTool } from './sus_tool';
+import jszip from 'jszip';
+import path from 'path-browserify';
+
 const {
   PanTool,
   WindowLevelTool,
@@ -133,8 +136,8 @@ export const createStack = async (id: string, element: HTMLDivElement, imageIds:
   toolGroup.addViewport(viewportId, renderingEngineId);
   viewport.render();
 
-  const loadFile = async (file: File) => {
-    await loadAndViewStackImage(viewport, file);
+  const loadFile = async (files: readonly File[]) => {
+    await loadAndViewStackImage(viewport, files);
   };
   const fixSize = () => {
     renderingEngine.resize();
@@ -234,8 +237,8 @@ export const createVolume = async (id: string, content: HTMLDivElement, imageIds
     renderingEngine.render();
   };
 
-  const loadFile = async (file: File) => {
-    await loadAndViewVolumeImage(volumeId, renderingEngine, viewportId, file);
+  const loadFile = async (files: readonly File[]) => {
+    await loadAndViewVolumeImage(volumeId, renderingEngine, viewportId, files);
   };
   const fixSize = () => {
     renderingEngine.resize();
@@ -248,8 +251,8 @@ export const createVolume = async (id: string, content: HTMLDivElement, imageIds
   };
 };
 
-async function loadAndViewStackImage(viewport: IStackViewport, file: File) {
-  const stack = await preloadImage(file);
+async function loadAndViewStackImage(viewport: IStackViewport, files: readonly File[]) {
+  const stack = await preloadImage(files);
   await updateStack(viewport, stack);
 }
 const updateStack = async (viewport: IStackViewport, imageIds: string[]) => {
@@ -263,9 +266,9 @@ async function loadAndViewVolumeImage(
   volumeId: string,
   renderingEngine: RenderingEngine,
   viewportId: string,
-  file: File
+  files: readonly File[]
 ) {
-  const stackImageIds = await preloadImage(file);
+  const stackImageIds = await preloadImage(files);
 
   // Define a volume in memory
   updateVolume(volumeId, renderingEngine, viewportId, stackImageIds);
@@ -302,11 +305,70 @@ const updateVolume = async (
   // const imageData = viewport.getImageData();
 };
 
-export const preloadImage = async (file: File) => {
-  cache.purgeCache();
-  cache.purgeVolumeCache();
+const file2stack = async (file: File) => {
   const imageId = cornerstoneDICOMImageLoader.wadouri.fileManager.add(file);
   await prefetchMetadataInformation([imageId]);
   const stack = convertMultiframeImageIds([imageId]);
   return stack;
+};
+const files2stack = async (
+  files: readonly (File | Promise<File | null>)[],
+  onProgress?: (x: number) => void
+) => {
+  const promises = files.map(async (raw_file) => {
+    const file = await raw_file;
+    if (file === null) return [];
+    return file2stack(file);
+  });
+
+  let d = 0;
+  onProgress && onProgress(0);
+  for (const p of promises) {
+    p.then(() => {
+      d++;
+      onProgress && onProgress(d / promises.length);
+    });
+  }
+
+  const new_stack = (await Promise.all(promises)).flat();
+  return new_stack;
+};
+export const preloadImage = async (
+  files: readonly File[],
+  onProgress?: (x: number) => void
+): Promise<string[]> => {
+  onProgress && onProgress(0.0);
+  cache.purgeCache();
+  cache.purgeVolumeCache();
+  onProgress && onProgress(0.1);
+
+  let res: string[] = [];
+  if (files.length === 1) {
+    const file = files[0];
+    if (file.name.split('.').pop() === 'zip') {
+      const zip = await jszip.loadAsync(file);
+      onProgress && onProgress(0.2);
+
+      const files = Object.values(zip.files);
+      res = await files2stack(
+        files.map(async (zobj) => {
+          if (zobj.dir) return null;
+          return new File([await zobj.async('blob')], path.basename(zobj.name), {
+            lastModified: zobj.date.getTime(),
+            type: 'application/zip'
+          });
+        }),
+        (x) => {
+          onProgress && onProgress(x * 0.8 + 0.2);
+        }
+      );
+    } else {
+      res = await file2stack(file);
+    }
+  } else {
+    res = await files2stack(files, onProgress);
+    // throw new Error('todo')
+  }
+  onProgress && onProgress(1);
+  return res;
 };
