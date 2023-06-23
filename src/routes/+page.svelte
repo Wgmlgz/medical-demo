@@ -19,6 +19,7 @@
   import PatientComponent from '$lib/patient.svelte';
   import Volumetric from '$lib/volumetric.svelte';
   import Tomograph from '$lib/tomograph.svelte';
+  import axios from 'axios';
 
   const patients = patients_example;
   let selected_patient_idx = 0;
@@ -37,21 +38,25 @@
     image_ids = [];
     progress.value = null;
   }
-  const scan: typeof import('$lib/cor')['preloadImage'] = async (files, onProgress) => {
+  const onProgress = (x: number) => (progress.value = x);
+  const onError = (s: string) => {
+    progress.helperText = s;
+    progress.status = 'error';
+  };
+  const scan: typeof import('$lib/cor')['preloadImage'] = async (files) => {
     const { preloadImage, stackImageIds, volumeImageIds } = await import('$lib/cor');
     try {
       progress.helperText = '';
       progress.status = 'active';
       patient = preview_patient;
-      image_ids = await preloadImage(files, (x) => (progress.value = x));
+      image_ids = await preloadImage(files, (x) => onProgress(x * 0.5 + 0.5));
       progress.status = 'finished';
       return image_ids;
     } catch (e: unknown) {
       if (typeof e === 'object' && e) {
-        if ('message' in e && typeof e.message === 'string') progress.helperText = e.message;
-        if ('error' in e && typeof e.error === 'string') progress.helperText = e.error;
+        if ('message' in e && typeof e.message === 'string') onError(e.message);
+        if ('error' in e && typeof e.error === 'string') onError(e.error);
       }
-      progress.status = 'error';
       return [];
     }
   };
@@ -83,8 +88,20 @@
           <Button
             on:click={async () => {
               if (!preview_patient) return;
-              const response = await fetch(preview_patient.url);
-              let data = await response.blob();
+              onProgress(0);
+              const response = await axios.get(preview_patient.url, {
+                responseType: 'blob',
+                onDownloadProgress(p) {
+                  onProgress((p.progress ?? 0) * 0.5);
+                }
+              });
+              const { data } = response;
+              onProgress(0.5);
+              if (!(data instanceof Blob)) {
+                onError('invalid response');
+                return;
+              }
+              // let data = response.;
               let metadata = {
                 type: 'image/jpeg'
               };
