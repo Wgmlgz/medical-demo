@@ -22,7 +22,7 @@ import {
   convertMultiframeImageIds,
   prefetchMetadataInformation
 } from './helpers/convertMultiframeImageIds';
-import { SusTool } from './sus_tool';
+import { SusTool, type onWindowFn } from './sus_tool';
 import jszip from 'jszip';
 import path from 'path-browserify';
 
@@ -148,7 +148,12 @@ export const createStack = async (id: string, element: HTMLDivElement, imageIds:
   };
 };
 
-export const createVolume = async (id: string, content: HTMLDivElement, imageIds: string[]) => {
+export const createVolume = async (
+  id: string,
+  content: HTMLDivElement,
+  imageIds: string[],
+  onWindow?: onWindowFn
+) => {
   // Define a unique id for the volume
   const volumeName = `CT_VOLUME_ID${id}`; // Id of the volume less loader prefix
   const volumeLoaderScheme = `cornerstoneStreamingImageVolume`; // Loader id which defines which volume loader to use
@@ -164,7 +169,10 @@ export const createVolume = async (id: string, content: HTMLDivElement, imageIds
     configuration: { volumeId }
   });
   toolGroup.addTool(SusTool.toolName, {
-    configuration: { volumeId }
+    configuration: {
+      volumeId,
+      onChange: onWindow
+    }
   });
   toolGroup.addTool(ZoomTool.toolName);
 

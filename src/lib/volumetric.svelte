@@ -6,6 +6,7 @@
   import Minimize from 'carbon-icons-svelte/lib/Minimize.svelte';
   import { onMount } from 'svelte';
   import { makeId } from './utils';
+  import type { onWindowFn } from './sus_tool';
 
   export let image_ids: string[];
 
@@ -22,13 +23,23 @@
   let loadFile: (files: readonly File[]) => Promise<void>;
   let fixSize: () => void = () => {};
   let element: HTMLElement;
-
+  let info: string = '';
+  const onWindow: onWindowFn = (wl, scale, arr) => {
+    info = `${arr
+      .map(([x, y]) => `${Math.round(x)}: ${Math.round(y * 100) / 100}`)
+      .join('\n')} \n WL (aproximate): ${Math.round(wl)} scale:${Math.round(scale * 100) / 100}`;
+  };
   let w: number, h: number;
   $: if (w && h) fixSize();
   onMount(async () => {
     const t = await import('./cor');
     const { createVolume } = t;
-    ({ options, select, loadFile, fixSize } = await createVolume(makeId(10), content, image_ids));
+    ({ options, select, loadFile, fixSize } = await createVolume(
+      makeId(10),
+      content,
+      image_ids,
+      onWindow
+    ));
   });
 
   let icon = Maximize;
@@ -65,6 +76,7 @@
   <div class="grow h-full" bind:this={content} on:contextmenu|preventDefault={() => {}} />
 
   <div class="absolute bottom-10px left-10px flex gap-2 flex-col">
+    <pre>{info}</pre>
     <p>Click the image to rotate it.</p>
     <p>Middle Click: adjust window</p>
     <p>Right Click: Zoom</p>
