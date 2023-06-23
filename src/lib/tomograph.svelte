@@ -12,6 +12,9 @@
   export let image_ids: string[];
   let loadFile: (files: readonly File[]) => Promise<void>;
 
+  let cur_img = 0;
+  let total = 0;
+  $: total = image_ids.length;
   let fixSize: () => void = () => {};
   let w: number, h: number;
   $: if (w && h) fixSize();
@@ -19,7 +22,12 @@
     console.log('abobus?');
     const t = await import('./cor');
     const { createStack } = t;
-    ({ loadFile, fixSize } = await createStack(makeId(10), content, image_ids));
+    ({ loadFile, fixSize } = await createStack(
+      makeId(10),
+      content,
+      image_ids,
+      (n) => (cur_img = n)
+    ));
     // loadFile = loadFile
   });
 
@@ -56,7 +64,7 @@
   />
 
   <div class="absolute bottom-10px left-10px flex gap-2 flex-col">
-    <p>Left Click: Pan</p>
+    <p>Image {cur_img}/{total}</p>
     <p>Right Click: Zoom</p>
     <p>Mouse Wheel: Stack Scroll</p>
     <div class="flex gap-2 item" />

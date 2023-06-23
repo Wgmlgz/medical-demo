@@ -46,7 +46,7 @@ cornerstoneTools.addTool(PlanarRotateTool);
 cornerstoneTools.addTool(SusTool);
 cornerstoneTools.addTool(TrackballRotateTool);
 
-const { ViewportType } = Enums;
+const { ViewportType, Events } = Enums;
 const { MouseBindings } = csToolsEnums;
 
 await initDemo();
@@ -65,7 +65,12 @@ export const volumeImageIds = await createImageIdsAndCacheMetaData({
   wadoRsRoot: 'https://domvja9iplmyu.cloudfront.net/dicomweb'
 });
 
-export const createStack = async (id: string, element: HTMLDivElement, imageIds: string[]) => {
+export const createStack = async (
+  id: string,
+  element: HTMLDivElement,
+  imageIds: string[],
+  onImageId?: (n: number) => void
+) => {
   const toolGroupId = `STACK_TOOL_GROUP_ID${id}`;
   const renderingEngineId = `myRenderingEngine${id}`;
   const viewportId = `CT_STACK${id}`;
@@ -111,7 +116,12 @@ export const createStack = async (id: string, element: HTMLDivElement, imageIds:
   // As the Stack Scroll mouse wheel is a tool using the `mouseWheelCallback`
   // hook instead of mouse buttons, it does not need to assign any mouse button.
   toolGroup.setToolActive(StackScrollMouseWheelTool.toolName);
-
+  element.addEventListener(Events.STACK_NEW_IMAGE, (e: any) => {
+    onImageId && onImageId(e.detail.imageIdIndex);
+  });
+  // element.addEventListener(Events.STACK_VIEWPORT_NEW_STACK, (e) => {
+  //   console.log(e);
+  // });
   // Instantiate a rendering engine
 
   const renderingEngine = new RenderingEngine(renderingEngineId);
