@@ -19,7 +19,7 @@
     }
   ];
   let select: (presetName: string) => void;
-  let loadFile: (file: File) => Promise<void>;
+  let loadFile: (files: readonly File[]) => Promise<void>;
   let fixSize: () => void = () => {};
   let element: HTMLElement;
 
@@ -44,6 +44,7 @@
   <Tile class="w-full">
     <div class="flex w-full gap-2 items-end">
       <Dropdown
+        class="grow"
         titleText="Preset"
         on:select={(e) => select(e.detail.selectedItem.text)}
         bind:selectedId={selected_patient_idx}
