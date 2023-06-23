@@ -10,7 +10,7 @@
   let element: HTMLElement;
 
   export let image_ids: string[];
-  let loadFile: (file: File) => Promise<void>;
+  let loadFile: (files: readonly File[]) => Promise<void>;
 
   let fixSize: () => void = () => {};
   let w: number, h: number;
