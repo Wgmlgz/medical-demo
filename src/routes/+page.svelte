@@ -46,8 +46,6 @@
   const scan: typeof import('$lib/cor')['preloadImage'] = async (files) => {
     const { preloadImage, stackImageIds, volumeImageIds } = await import('$lib/cor');
     try {
-      progress.helperText = '';
-      progress.status = 'active';
       patient = preview_patient;
       image_ids = await preloadImage(files, (x) => onProgress(x * 0.5 + 0.5));
       progress.status = 'finished';
@@ -88,6 +86,8 @@
           <Button
             on:click={async () => {
               if (!preview_patient) return;
+              progress.helperText = '';
+              progress.status = 'active';
               onProgress(0);
               const response = await axios.get(preview_patient.url, {
                 responseType: 'blob',
