@@ -59,7 +59,35 @@
     }
   };
 
+  const scanCur = async () => {
+    if (!preview_patient) return;
+    progress.helperText = '';
+    progress.status = 'active';
+    onProgress(0);
+    const response = await axios.get(preview_patient.url, {
+      responseType: 'blob',
+      onDownloadProgress(p) {
+        onProgress((p.progress ?? 0) * 0.5);
+      }
+    });
+    const { data } = response;
+    onProgress(0.5);
+    if (!(data instanceof Blob)) {
+      onError('invalid response');
+      return;
+    }
+    // let data = response.;
+    let metadata = {
+      type: 'image/jpeg'
+    };
+    let files = [new File([data], preview_patient.url)];
+    await scan(files);
+  };
   let image_ids: string[] | null = null;
+
+  onMount(async () => {
+    scanCur()
+  })
 </script>
 
 <Grid>
@@ -83,32 +111,7 @@
       <Tile>
         {#if preview_patient !== null}
           <PatientComponent patient={preview_patient} />
-          <Button
-            on:click={async () => {
-              if (!preview_patient) return;
-              progress.helperText = '';
-              progress.status = 'active';
-              onProgress(0);
-              const response = await axios.get(preview_patient.url, {
-                responseType: 'blob',
-                onDownloadProgress(p) {
-                  onProgress((p.progress ?? 0) * 0.5);
-                }
-              });
-              const { data } = response;
-              onProgress(0.5);
-              if (!(data instanceof Blob)) {
-                onError('invalid response');
-                return;
-              }
-              // let data = response.;
-              let metadata = {
-                type: 'image/jpeg'
-              };
-              let files = [new File([data], preview_patient.url)];
-              await scan(files);
-            }}>Scan</Button
-          >
+          <Button on:click={scanCur}>Scan</Button>
           <!-- <FileUploaderButton
             multiple
             on:change={async (e) => {

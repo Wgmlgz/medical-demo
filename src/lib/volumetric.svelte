@@ -7,6 +7,44 @@
   import { onMount } from 'svelte';
   import { makeId } from './utils';
   import type { onWindowFn } from './sus_tool';
+  import { Scatter } from 'svelte-chartjs';
+  import annotationPlugin from 'chartjs-plugin-annotation';
+  import _ from 'lodash';
+  import {
+    Chart as ChartJS,
+    Title,
+    Tooltip,
+    Legend,
+    LineElement,
+    LinearScale,
+    PointElement,
+    CategoryScale
+  } from 'chart.js';
+
+  ChartJS.register(
+    Title,
+    Tooltip,
+    Legend,
+    LineElement,
+    LinearScale,
+    PointElement,
+    CategoryScale,
+    annotationPlugin
+  );
+
+  const data = {
+    datasets: [
+      {
+        label: 'Dataset 1',
+        data: [],
+        borderColor: '#fff',
+        backgroundColor: '#fff',
+        showLine: true,
+        pointRadius: 0
+      }
+    ]
+  };
+  let wl = 0;
 
   export let image_ids: string[];
 
@@ -16,25 +54,28 @@
   let options: DropdownItem[] = [
     {
       id: 0,
-      text: 'CT-Bone'
+      text: 'CT-AAA'
     }
   ];
-  let select: (presetName: string) => void;
+  let selectPreset: (presetName: string) => void;
   let loadFile: (files: readonly File[]) => Promise<void>;
   let fixSize: () => void = () => {};
   let element: HTMLElement;
   let info: string = '';
-  const onWindow: onWindowFn = (wl, scale, arr) => {
-    info = `${arr
+  const onWindow: onWindowFn = (cur_wl, scale, arr) => {
+    wl = cur_wl
+    const chunks = _.chunk(arr, 2);
+    info = `${chunks
       .map(([x, y]) => `${Math.round(x)}: ${Math.round(y * 100) / 100}`)
       .join('\n')} \n WL (aproximate): ${Math.round(wl)} scale:${Math.round(scale * 100) / 100}`;
+    data.datasets[0].data = chunks;
   };
   let w: number, h: number;
   $: if (w && h) fixSize();
   onMount(async () => {
     const t = await import('./cor');
     const { createVolume } = t;
-    ({ options, select, loadFile, fixSize } = await createVolume(
+    ({ options, selectPreset, loadFile, fixSize } = await createVolume(
       makeId(10),
       content,
       image_ids,
@@ -57,7 +98,7 @@
       <Dropdown
         class="grow"
         titleText="Preset"
-        on:select={(e) => select(e.detail.selectedItem.text)}
+        on:select={(e) => selectPreset(e.detail.selectedItem.text)}
         bind:selectedId={selected_patient_idx}
         items={options}
       />
@@ -76,6 +117,44 @@
   <div class="grow h-full" bind:this={content} on:contextmenu|preventDefault={() => {}} />
 
   <div class="absolute bottom-10px left-10px flex gap-2 flex-col">
+    <Scatter
+      {data}
+      options={{
+        responsive: true,
+        plugins: {
+          legend: {
+            position: 'top'
+          }
+        },
+        animation: {
+          duration: 0
+        },
+        scales: {
+          x: {
+            min: -1000,
+            max: 1000
+          },
+          y: {
+            min: 0,
+            max: 1
+          }
+        },
+        plugins: {
+          annotation: {
+            annotations: {
+              box1: {
+                type: 'line',
+                xMin: wl,
+                xMax: wl,
+                yMin: 0,
+                yMax: 1,
+                // backgroundColor: 'rgba(255, 99, 132, 0.25)'
+              }
+            }
+          }
+        }
+      }}
+    />
     <pre>{info}</pre>
     <p>Click the image to rotate it.</p>
     <p>Middle Click: adjust window</p>

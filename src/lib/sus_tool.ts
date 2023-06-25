@@ -10,6 +10,7 @@ export class SusTool extends BaseTool {
   WL = 0;
   BASE_WL = 0;
   WW = 0;
+  scale = 1;
   base: number[] = [];
   last: number[] = [];
   constructor(
@@ -25,17 +26,19 @@ export class SusTool extends BaseTool {
     this.mouseDragCallback(evt);
   }
 
-  mouseDragCallback(evt: InteractionEventType) {
-    const { element, deltaPoints } = evt.detail;
-    const enabledElement = getEnabledElement(element);
-    if (!enabledElement) throw Error("element doesn't exist");
-    const { viewport, renderingEngine } = enabledElement;
-    this.WW += deltaPoints.canvas[0];
-    this.WL += -deltaPoints.canvas[1];
 
+  triggerChangeCallback() {
+    const { onChange } = this.configuration.configuration
+    onChange && onChange(this.WL + this.BASE_WL, this.scale, this.last);
+  }
+
+
+  public refresh(viewport: Types.IVolumeViewport) {
     const volumeActor = viewport.getDefaultActor().actor as Types.VolumeActor;
 
     const cur = volumeActor.getProperty().getScalarOpacity(0).getDataPointer();
+
+
     if (JSON.stringify(this.last) !== JSON.stringify(cur)) {
       this.base = cur;
       this.BASE_WL = 0;
@@ -51,23 +54,34 @@ export class SusTool extends BaseTool {
     const fn = vtkPiecewiseFunction.newInstance();
     const points = [...this.base];
 
-    const scale = Math.pow(2, this.WW / 500);
+    this.scale = Math.pow(2, this.WW / 500);
 
     const arr = [];
     for (let i = 0; i < points.length; i += 2) {
-      const x = (points[i] - this.BASE_WL) * scale + this.BASE_WL + this.WL;
+      const x = (points[i] - this.BASE_WL) * this.scale + this.BASE_WL + this.WL;
       const y = points[i + 1];
       fn.addPoint(x, y);
       arr.push([x, y]);
     }
 
-    const { onChange } = this.configuration.configuration
-    onChange && onChange(this.WL + this.BASE_WL, scale, arr, fn);
+    
     volumeActor.getProperty().setScalarOpacity(0, fn);
-
     this.last = volumeActor.getProperty().getScalarOpacity(0).getDataPointer();
-
+    this.triggerChangeCallback()
     viewport.render();
+  }
+
+
+  mouseDragCallback(evt: InteractionEventType) {
+    const { element, deltaPoints } = evt.detail;
+    const enabledElement = getEnabledElement(element);
+    if (!enabledElement) throw Error("element doesn't exist");
+    const { viewport, renderingEngine } = enabledElement;
+
+    this.WW += deltaPoints.canvas[0];
+    this.WL += -deltaPoints.canvas[1];
+
+    this.refresh(viewport as Types.IVolumeViewport)
   }
 }
 

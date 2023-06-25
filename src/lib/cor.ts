@@ -210,7 +210,7 @@ export const createVolume = async (
       }
     ]
   });
-
+  
   // Instantiate a rendering engine
   const renderingEngine = new RenderingEngine(renderingEngineId);
 
@@ -245,13 +245,14 @@ export const createVolume = async (
   // renderingEngine.setViewports(viewportInputArray);
   renderingEngine.render();
 
-  const select = (presetName: string) => {
-    const volumeActor = renderingEngine.getViewport(viewportId).getDefaultActor()
+  const selectPreset = (presetName: string) => {
+    const volumeActor = viewport.getDefaultActor()
       .actor as Types.VolumeActor;
 
     const preset = findPreset(presetName);
     utilities.applyPreset(volumeActor, preset);
 
+    toolGroup.getToolInstance(SusTool.toolName).refresh(viewport)
     renderingEngine.render();
   };
 
@@ -261,8 +262,10 @@ export const createVolume = async (
   const fixSize = () => {
     renderingEngine.resize();
   };
+
+  selectPreset('CT-Bone')
   return {
-    select,
+    selectPreset,
     loadFile,
     fixSize,
     options: CONSTANTS.VIEWPORT_PRESETS.map((preset, idx) => ({ id: idx, text: preset.name }))
@@ -309,8 +312,8 @@ const updateVolume = async (
   const volumeActor = renderingEngine.getViewport(viewportId).getDefaultActor()
     .actor as Types.VolumeActor;
 
-  const preset = findPreset('CT-Bone');
-  utilities.applyPreset(volumeActor, preset);
+  // const preset = findPreset('CT-Bone');
+  // utilities.applyPreset(volumeActor, preset);
 
   const viewport = renderingEngine.getViewport(viewportId);
   viewport.render();
