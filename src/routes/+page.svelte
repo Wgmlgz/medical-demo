@@ -85,9 +85,9 @@
   };
   let image_ids: string[] | null = null;
 
-  onMount(async () => {
-    scanCur()
-  })
+  // onMount(async () => {
+  //   scanCur()
+  // })
 </script>
 
 <Grid>
