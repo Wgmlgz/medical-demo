@@ -49,7 +49,7 @@ export class SusTool extends BaseTool {
 
       for (let i = 2; i < this.base.length; i += 2) {
         const cx = (this.base[i] + this.base[i - 2]) / 2
-        const dy = (this.base[i - 1] - this.base[i + 1])
+        const dy = Math.abs(this.base[i - 1] - this.base[i + 1])
         this.BASE_WL += cx * dy;
         d += dy;
       }
