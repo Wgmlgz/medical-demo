@@ -45,9 +45,13 @@ export class SusTool extends BaseTool {
       this.WW = 0;
       this.WL = 0;
       let d = 0;
-      for (let i = 0; i < this.base.length; i += 2) {
-        this.BASE_WL += this.base[i] * this.base[i + 1];
-        d += this.base[i + 1];
+
+
+      for (let i = 2; i < this.base.length; i += 2) {
+        const cx = (this.base[i] + this.base[i - 2]) / 2
+        const dy = (this.base[i - 1] - this.base[i + 1])
+        this.BASE_WL += cx * dy;
+        d += dy;
       }
       this.BASE_WL /= d;
     }
