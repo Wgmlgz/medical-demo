@@ -63,11 +63,9 @@
   let element: HTMLElement;
   let info: string = '';
   const onWindow: onWindowFn = (cur_wl, scale, arr) => {
-    wl = cur_wl
+    wl = cur_wl;
     const chunks = _.chunk(arr, 2);
-    info = `${chunks
-      .map(([x, y]) => `${Math.round(x)}: ${Math.round(y * 100) / 100}`)
-      .join('\n')} \n WL (aproximate): ${Math.round(wl)} scale:${Math.round(scale * 100) / 100}`;
+    info = `WL: ${Math.round(wl)} scale:${Math.round(scale * 100) / 100}`;
     data.datasets[0].data = chunks;
   };
   let w: number, h: number;
@@ -116,30 +114,50 @@
   </Tile>
   <div class="grow h-full" bind:this={content} on:contextmenu|preventDefault={() => {}} />
 
-  <div class="absolute bottom-10px left-10px flex gap-2 flex-col">
+  <div class="absolute bottom-10px left-10px flflex gap-2 flex-col">
+    <pre>{info}</pre>
+    <p>Click the image to rotate it.</p>
+    <p>Middle Click: adjust window</p>
+    <p>Right Click: Zoom</p>
+    <div class="flex gap-2 item" />
+  </div>
+
+  <div class="absolute bottom-10px right-10px flex gap-2">
     <Scatter
       {data}
+      height="100px"
+      width="200px"
       options={{
-        responsive: true,
-        plugins: {
-          legend: {
-            position: 'top'
-          }
-        },
+        responsive: false,
         animation: {
           duration: 0
         },
         scales: {
           x: {
             min: -1000,
-            max: 1000
+            max: 1000,
+            ticks: {
+              color: '#fff'
+            },
+            grid: {
+              display: false
+            }
           },
           y: {
             min: 0,
-            max: 1
+            max: 1,
+            ticks: {
+              color: '#fff'
+            },
+            grid: {
+              display: false
+            }
           }
         },
         plugins: {
+          legend: {
+            display: false
+          },
           annotation: {
             annotations: {
               box1: {
@@ -148,17 +166,13 @@
                 xMax: wl,
                 yMin: 0,
                 yMax: 1,
-                // backgroundColor: 'rgba(255, 99, 132, 0.25)'
+                borderWidth: 3,
+                borderColor: '#0353e9'
               }
             }
           }
         }
       }}
     />
-    <pre>{info}</pre>
-    <p>Click the image to rotate it.</p>
-    <p>Middle Click: adjust window</p>
-    <p>Right Click: Zoom</p>
-    <div class="flex gap-2 item" />
   </div>
 </div>
