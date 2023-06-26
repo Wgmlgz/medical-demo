@@ -25,6 +25,7 @@ import {
 import { SusTool, type onWindowFn } from './sus_tool';
 import jszip from 'jszip';
 import path from 'path-browserify';
+import type { WindowLevelTool } from '@cornerstonejs/tools';
 
 const {
   PanTool,
@@ -145,6 +146,8 @@ export const createStack = async (
   updateStack(viewport, imageIds);
   toolGroup.addViewport(viewportId, renderingEngineId);
   viewport.render();
+  console.log(viewport.getProperties())
+  console.log((toolGroup.getToolInstance(WindowLevelTool.toolName) as WindowLevelTool).get)
 
   const loadFile = async (files: readonly File[]) => {
     await loadAndViewStackImage(viewport, files);
@@ -154,7 +157,9 @@ export const createStack = async (
   };
   return {
     loadFile,
-    fixSize
+    fixSize,
+    viewport,
+    Events
   };
 };
 
